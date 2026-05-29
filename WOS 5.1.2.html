@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WealthOS — Investment Tracker</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: { colors: { darkbg: '#080c14', darkcard: '#0e1420' } } }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  :root{color-scheme:light}
+  .dark{color-scheme:dark}
+  body{font-family:'DM Sans',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#334155;border-radius:10px}
+
+  .glass{background:rgba(255,255,255,0.72);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(226,232,240,0.9)}
+  .dark .glass{background:rgba(14,20,32,0.7);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.06)}
+
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:500;color:#64748b;transition:all .2s;cursor:pointer;text-decoration:none}
+  .nav-item:hover{background:rgba(99,102,241,0.08);color:#6366f1}
+  .dark .nav-item:hover{background:rgba(99,102,241,0.15);color:#818cf8}
+  .nav-active{background:rgba(99,102,241,0.1) !important;color:#4f46e5 !important;font-weight:600}
+  .dark .nav-active{background:rgba(99,102,241,0.2) !important;color:#818cf8 !important}
+
+  .field-label{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#94a3b8;margin-bottom:5px}
+  .field-input{width:100%;background:rgba(248,250,252,1);border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:13px;font-family:'DM Sans',sans-serif;color:#1e293b;transition:border-color .2s,box-shadow .2s;outline:none}
+  .dark .field-input{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#e2e8f0}
+  .field-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.12)}
+  .field-input::placeholder{color:#94a3b8}
+  select.field-input{cursor:pointer}
+
+  .btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;box-shadow:0 2px 12px rgba(99,102,241,0.35)}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(99,102,241,0.45)}
+  .btn-warning{background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:0 2px 12px rgba(245,158,11,0.35)}
+  .btn-warning:hover{box-shadow:0 4px 18px rgba(245,158,11,0.45)}
+  .btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
+  .btn-ghost{background:transparent;color:#64748b;border:1.5px solid #e2e8f0;box-shadow:none}
+  .btn-ghost:hover{background:#f8fafc;color:#1e293b;border-color:#94a3b8;transform:none}
+  .dark .btn-ghost{border-color:rgba(255,255,255,0.1);color:#94a3b8}
+  .dark .btn-ghost:hover{background:rgba(255,255,255,0.08);color:#e2e8f0}
+
+  .stat-card{border-radius:16px;padding:18px 20px;position:relative;overflow:hidden}
+  .stat-card .stat-label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#94a3b8;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+  .stat-card .stat-value{font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em}
+  .stat-card .stat-sub{font-size:11px;margin-top:3px;color:#94a3b8}
+
+  .table-wrap{overflow-x:auto;overflow-y:auto}
+  .data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:680px}
+  .data-table thead th{padding:10px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#4f46e5;text-align:right;white-space:nowrap;position:sticky;top:0;z-index:5}
+  .data-table thead th:first-child{text-align:left;border-radius:10px 0 0 0;padding-left:16px}
+  .data-table thead th:last-child{border-radius:0 10px 0 0}
+  .data-table tbody tr{border-bottom:1px solid rgba(226,232,240,0.6);transition:background .15s}
+  .dark .data-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.05)}
+  .data-table tbody tr:hover{background:rgba(99,102,241,0.04)}
+  .dark .data-table tbody tr:hover{background:rgba(99,102,241,0.1)}
+  .data-table td{padding:10px 12px;text-align:right;white-space:nowrap;vertical-align:middle}
+  .data-table td:first-child{text-align:left;padding-left:16px;font-weight:600}
+
+  .badge-profit{display:inline-block;padding:3px 8px;border-radius:6px;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:12px;background:#d1fae5;color:#065f46}
+  .badge-loss{display:inline-block;padding:3px 8px;border-radius:6px;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:12px;background:#fee2e2;color:#991b1b}
+  .dark .badge-profit{background:rgba(16,185,129,0.2);color:#6ee7b7}
+  .dark .badge-loss{background:rgba(239,68,68,0.2);color:#fca5a5}
+
+  .badge-mom-up{display:inline-block;padding:2px 6px;border-radius:5px;font-size:11px;font-weight:600;background:#d1fae5;color:#065f46;font-family:'JetBrains Mono',monospace}
+  .badge-mom-dn{display:inline-block;padding:2px 6px;border-radius:5px;font-size:11px;font-weight:600;background:#fee2e2;color:#991b1b;font-family:'JetBrains Mono',monospace}
+  .dark .badge-mom-up{background:rgba(16,185,129,0.2);color:#6ee7b7}
+  .dark .badge-mom-dn{background:rgba(239,68,68,0.2);color:#fca5a5}
+
+  .alloc-bar{height:8px;border-radius:100px;background:#e2e8f0;overflow:hidden;margin-top:4px}
+  .dark .alloc-bar{background:rgba(255,255,255,0.1)}
+  .alloc-fill{height:100%;border-radius:100px;transition:width .5s ease}
+
+  .tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(99,102,241,0.1);color:#4f46e5}
+  .dark .tag{background:rgba(99,102,241,0.2);color:#818cf8}
+
+  .switch{position:relative;display:inline-block;width:46px;height:26px}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;transition:.3s;border-radius:34px}
+  .dark .slider{background:#334155}
+  .slider:before{position:absolute;content:"";height:18px;width:18px;left:4px;bottom:4px;background:white;transition:.3s;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  input:checked+.slider{background:#6366f1}
+  input:checked+.slider:before{transform:translateX(20px)}
+
+  .asset-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600}
+
+  .page{display:none}.page.active{display:block}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .fade-up{animation:fadeUp .3s ease forwards}
+
+  @media(max-width:768px){
+    aside{display:none !important}
+    #mobileBar{display:flex !important}
+  }
+  #mobileBar{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);border-top:1px solid #e2e8f0;padding:8px 16px;z-index:50;gap:8px}
+  .dark #mobileBar{background:rgba(8,12,20,0.95);border-top-color:rgba(255,255,255,0.08)}
+
+  .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:40}
+  .drawer{display:none;position:fixed;top:0;right:0;bottom:0;width:320px;background:white;z-index:50;padding:20px;overflow-y:auto;box-shadow:-8px 0 40px rgba(0,0,0,0.15)}
+  .dark .drawer{background:#0e1420;border-left:1px solid rgba(255,255,255,0.06)}
+  .drawer.open,.drawer-overlay.open{display:block}
+
+  .note-text{font-size:12px;color:#64748b;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+  .dark .note-text{color:#94a3b8}
+
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-darkbg text-slate-900 dark:text-slate-50 flex h-screen overflow-hidden transition-colors duration-300">
+
+<aside class="w-60 border-r border-slate-100 dark:border-white/[.06] flex flex-col justify-between shrink-0 z-10 bg-white dark:bg-darkcard hidden md:flex">
+  <div>
+    <div class="p-6 pb-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+          <i data-lucide="trending-up" class="w-4 h-4 text-white"></i>
+        </div>
+        <h1 class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-500">WealthOS</h1>
+      </div>
+    </div>
+    <nav class="px-3 space-y-1 mt-2">
+      <a href="#" onclick="switchPage('tracking')" id="nav-tracking" class="nav-item nav-active">
+        <i data-lucide="layout-list" class="w-4 h-4"></i> Tracking Port
+      </a>
+      <a href="#" onclick="switchPage('closed')" id="nav-closed" class="nav-item">
+        <i data-lucide="history" class="w-4 h-4"></i> Closed position
+      </a>
+      <a href="#" onclick="switchPage('retirement')" id="nav-retirement" class="nav-item">
+        <i data-lucide="target" class="w-4 h-4"></i> แผนเกษียณอายุ
+      </a>
+    </nav>
+  </div>
+  <div class="p-4 border-t border-slate-100 dark:border-white/[.06] space-y-3">
+    <div class="flex gap-2">
+      <button onclick="exportData()" class="btn-primary btn-ghost btn-sm flex-1 text-xs">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i> Export
+      </button>
+      <button onclick="document.getElementById('importFile').click()" class="btn-primary btn-ghost btn-sm flex-1 text-xs">
+        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Import
+      </button>
+      <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+    </div>
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-slate-400 flex items-center gap-1.5" id="themeLabel">
+        <i data-lucide="moon" class="w-3.5 h-3.5 hidden dark:block"></i>
+        <i data-lucide="sun" class="w-3.5 h-3.5 dark:hidden"></i>
+        Dark Mode
+      </span>
+      <label class="switch">
+        <input type="checkbox" id="themeToggle" onchange="toggleTheme()" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+</aside>
+
+<main class="flex-1 overflow-y-auto relative pb-20 md:pb-0">
+
+<div id="page-tracking" class="page active p-5 md:p-8 fade-up">
+  <header class="mb-6 flex items-start justify-between">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Tracking Port</h1>
+      <p class="text-slate-400 text-sm mt-0.5">บันทึกและวิเคราะห์การเติบโตของพอร์ตรายเดือน</p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="exportData()" class="md:hidden btn-primary btn-ghost btn-sm text-xs">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+    <div class="stat-card glass border-l-4 border-l-blue-500">
+      <div class="stat-label"><i data-lucide="wallet" class="w-3.5 h-3.5"></i> มูลค่าพอร์ต</div>
+      <div class="stat-value text-slate-800 dark:text-white" id="sumTotalAsset">฿0</div>
+      <div class="stat-sub" id="sumAssetSub">—</div>
+    </div>
+    <div class="stat-card glass border-l-4 border-l-slate-400">
+      <div class="stat-label"><i data-lucide="piggy-bank" class="w-3.5 h-3.5"></i> เงินลงทุนรวม</div>
+      <div class="stat-value text-slate-800 dark:text-white" id="sumPrinciple">฿0</div>
+      <div class="stat-sub" id="sumDCASub">—</div>
+    </div>
+    <div class="stat-card glass border-l-4" id="cardProfit" style="border-left-color:#94a3b8">
+      <div class="stat-label"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i> กำไร/ขาดทุน</div>
+      <div class="stat-value text-slate-400" id="sumNetProfit">฿0</div>
+      <div class="stat-sub" id="sumMoMSub">MoM: —</div>
+    </div>
+    <div class="stat-card glass border-l-4" id="cardPct" style="border-left-color:#94a3b8">
+      <div class="stat-label"><i data-lucide="activity" class="w-3.5 h-3.5"></i> อัตราผลตอบแทน</div>
+      <div class="stat-value text-slate-400" id="sumPct">0.00%</div>
+      <div class="stat-sub" id="sumMonthsSub">— เดือน</div>
+    </div>
+  </div>
+
+  <div class="glass rounded-2xl p-5 mb-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 id="formTitle" class="text-sm font-semibold flex items-center gap-2 text-indigo-500">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i> เพิ่มข้อมูลประจำเดือน
+      </h2>
+      <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 dark:bg-white/[.06] text-slate-500">
+        สัดส่วนคงเหลือ: <span id="allocRemainText" class="text-amber-500 font-bold ml-1">100%</span>
+      </span>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+      <div>
+        <label class="field-label">เดือน / ปี</label>
+        <div class="relative">
+          <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+          <input type="month" id="trkDate" class="field-input pl-9">
+        </div>
+      </div>
+      <div>
+        <label class="field-label">DCA / month (฿)</label>
+        <input type="number" id="trkDCA" placeholder="0" class="field-input">
+      </div>
+      <div>
+        <label class="field-label">Total Asset (฿)</label>
+        <input type="number" id="trkAsset" placeholder="0" class="field-input">
+      </div>
+      <div>
+        <label class="field-label">หมายเหตุ / Note</label>
+        <input type="text" id="trkNote" placeholder="เช่น ปิดกอง KFSDIV..." class="field-input">
+      </div>
+    </div>
+
+    <div id="assetInputsRow" class="grid gap-3 mb-3" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">
+      </div>
+
+    <div class="mb-4 hidden" id="allocBarWrap">
+      <div class="flex justify-between text-xs text-slate-400 mb-1">
+        <span>Asset Allocation</span>
+        <span id="allocBarLabel">0 / 100%</span>
+      </div>
+      <div class="alloc-bar"><div id="allocBarFill" class="alloc-fill bg-indigo-500" style="width:0%"></div></div>
+    </div>
+
+    <div class="flex flex-wrap gap-2 items-center">
+      <button id="btnSubmit" onclick="addTracking()" class="btn-primary">
+        <i data-lucide="save" class="w-4 h-4"></i> บันทึก
+      </button>
+      <button onclick="resetForm()" class="btn-primary btn-ghost btn-sm">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i> ล้าง
+      </button>
+      <button onclick="openAssetManager()" class="btn-primary btn-ghost btn-sm ml-auto">
+        <i data-lucide="settings-2" class="w-3.5 h-3.5"></i> จัดการ Assets
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+    <div class="xl:col-span-2 glass rounded-2xl overflow-hidden flex flex-col" style="max-height:540px">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-white/[.05]">
+        <span class="text-sm font-semibold">ประวัติรายเดือน</span>
+        <span id="rowCount" class="tag">0 รายการ</span>
+      </div>
+      <div class="table-wrap flex-1">
+        <table class="data-table">
+          <thead>
+            <tr id="tableHead">
+              <th>Date</th>
+              <th>DCA</th>
+              <th>Principle</th>
+              <th id="dynamicAssetCols"></th>
+              <th>Total Asset</th>
+              <th>MoM</th>
+              <th>Net Profit</th>
+              <th>% Return</th>
+              <th class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody id="trackingTbody" class="bg-white dark:bg-white/[.02]"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-4">
+      <div class="glass rounded-2xl p-5 flex flex-col" style="height:300px">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold">Performance</h2>
+          <div class="flex gap-3 text-xs text-slate-400">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Asset</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>Principle</span>
+          </div>
+        </div>
+        <div class="flex-1 relative"><canvas id="trackingChart" role="img" aria-label="Performance chart of total asset vs principle over time">Portfolio performance over time.</canvas></div>
+      </div>
+
+      <div class="glass rounded-2xl p-5 flex flex-col" style="height:240px">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-indigo-400"></i> Asset Allocation</h2>
+          <select id="statMonth" onchange="renderPie()" class="field-input" style="width:auto;padding:4px 8px;font-size:12px"></select>
+        </div>
+        <div id="assetPieWrap" class="flex-1 relative min-h-0 overflow-hidden">
+          <canvas id="assetPieChart" role="img" aria-label="Asset allocation pie chart" style="position:absolute;inset:0;width:100%!important;height:100%!important">Asset allocation breakdown.</canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="page-retirement" class="page p-5 md:p-8 fade-up">
+  <header class="mb-6">
+    <h1 class="text-2xl font-bold tracking-tight">แผนเกษียณอายุ</h1>
+    <p class="text-slate-400 text-sm mt-0.5">จำลองการเติบโตของพอร์ตถึงวันเกษียณ</p>
+  </header>
+  <div class="glass rounded-2xl p-5 mb-6">
+    <h2 class="text-sm font-semibold mb-4 text-indigo-500 flex items-center gap-2"><i data-lucide="calculator" class="w-4 h-4"></i> ตั้งค่าแผนเกษียณ</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+      <div>
+        <label class="field-label">อายุปัจจุบัน</label>
+        <input type="number" id="retCurrentAge" placeholder="30" class="field-input" oninput="calcRetirement()">
+      </div>
+      <div>
+        <label class="field-label">อายุเกษียณ</label>
+        <input type="number" id="retRetireAge" placeholder="60" class="field-input" oninput="calcRetirement()">
+      </div>
+      <div>
+        <label class="field-label">DCA ต่อเดือน (฿)</label>
+        <input type="number" id="retDCA" placeholder="10000" class="field-input" oninput="calcRetirement()">
+      </div>
+      <div>
+        <label class="field-label">ผลตอบแทนต่อปี (%)</label>
+        <input type="number" id="retReturn" placeholder="8" class="field-input" oninput="calcRetirement()">
+      </div>
+      <div>
+        <label class="field-label">พอร์ตปัจจุบัน (฿)</label>
+        <input type="number" id="retCurrent" placeholder="0" class="field-input" oninput="calcRetirement()">
+      </div>
+      <div>
+        <label class="field-label">ค่าใช้จ่ายต่อเดือนหลังเกษียณ (฿)</label>
+        <input type="number" id="retExpense" placeholder="30000" class="field-input" oninput="calcRetirement()">
+      </div>
+      <div>
+        <label class="field-label">เงินเฟ้อ (%/ปี)</label>
+        <input type="number" id="retInflation" placeholder="3" class="field-input" oninput="calcRetirement()">
+      </div>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" id="retCards">
+    <div class="stat-card glass border-l-4 border-l-violet-500">
+      <div class="stat-label"><i data-lucide="clock" class="w-3.5 h-3.5"></i> เวลาที่เหลือ</div>
+      <div class="stat-value text-violet-500" id="retYearsLeft">—</div>
+      <div class="stat-sub">ปี</div>
+    </div>
+    <div class="stat-card glass border-l-4 border-l-emerald-500">
+      <div class="stat-label"><i data-lucide="landmark" class="w-3.5 h-3.5"></i> เป้าหมายพอร์ต</div>
+      <div class="stat-value text-emerald-500" id="retTarget">—</div>
+      <div class="stat-sub">ณ วันเกษียณ</div>
+    </div>
+    <div class="stat-card glass border-l-4 border-l-blue-500">
+      <div class="stat-label"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i> คาดการณ์พอร์ต</div>
+      <div class="stat-value text-blue-500" id="retProjected">—</div>
+      <div class="stat-sub">ณ วันเกษียณ</div>
+    </div>
+    <div class="stat-card glass" id="retStatusCard">
+      <div class="stat-label"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> สถานะ</div>
+      <div class="stat-value" id="retStatus">—</div>
+      <div class="stat-sub" id="retStatusSub">—</div>
+    </div>
+  </div>
+  <div class="glass rounded-2xl p-5">
+    <h2 class="text-sm font-semibold mb-3">กราฟการเติบโตถึงวันเกษียณ</h2>
+    <div style="position:relative;height:300px">
+      <canvas id="retChart" role="img" aria-label="Retirement projection chart">Retirement growth projection.</canvas>
+    </div>
+  </div>
+</div>
+
+<div id="page-closed" class="page p-5 md:p-8 fade-up">
+  <header class="mb-6 flex items-start justify-between">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Closed position</h1>
+      <p class="text-slate-400 text-sm mt-0.5">วิเคราะห์สถิติหุ้นที่รับรู้กำไร/ขาดทุนไปแล้ว (Realized P/L)</p>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+    <div class="stat-card glass border-l-4" id="clsTotalCard" style="border-left-color:#94a3b8">
+      <div class="stat-label"><i data-lucide="landmark" class="w-3.5 h-3.5"></i> Realized P/L สุทธิ</div>
+      <div class="stat-value text-slate-400" id="clsTotalProfit">฿0</div>
+      <div class="stat-sub" id="clsTotalReturn">Return: 0.00%</div>
+    </div>
+    <div class="stat-card glass border-l-4 border-l-blue-500">
+      <div class="stat-label"><i data-lucide="target" class="w-3.5 h-3.5"></i> อัตราการชนะ (Win Rate)</div>
+      <div class="stat-value text-blue-500" id="clsWinRate">0%</div>
+      <div class="stat-sub" id="clsTradeCount">0 Trades (Win 0 / Loss 0)</div>
+    </div>
+    <div class="stat-card glass border-l-4 border-l-emerald-500">
+      <div class="stat-label"><i data-lucide="award" class="w-3.5 h-3.5"></i> Best Trade (กำไรสูงสุด)</div>
+      <div class="stat-value text-emerald-500" id="clsBestProfit">—</div>
+      <div class="stat-sub" id="clsBestTicker">—</div>
+    </div>
+    <div class="stat-card glass border-l-4 border-l-rose-500">
+      <div class="stat-label"><i data-lucide="trending-down" class="w-3.5 h-3.5"></i> Worst Trade (เจ็บหนักสุด)</div>
+      <div class="stat-value text-rose-500" id="clsWorstProfit">—</div>
+      <div class="stat-sub" id="clsWorstTicker">—</div>
+    </div>
+  </div>
+
+  <div class="glass rounded-2xl p-5 mb-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 id="clsFormTitle" class="text-sm font-semibold flex items-center gap-2 text-indigo-500">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i> บันทึกประวัติการขาย
+      </h2>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
+      <div>
+        <label class="field-label">สัญลักษณ์ (Ticker)</label>
+        <input type="text" id="clsTicker" placeholder="เช่น AAPL, PTT" class="field-input uppercase">
+      </div>
+      <div>
+        <label class="field-label">วันที่ซื้อ</label>
+        <input type="date" id="clsBuyDate" class="field-input">
+      </div>
+      <div>
+        <label class="field-label">วันที่ขาย</label>
+        <input type="date" id="clsSellDate" class="field-input">
+      </div>
+      <div>
+        <label class="field-label">จำนวน (Shares)</label>
+        <input type="number" id="clsShares" placeholder="0" class="field-input">
+      </div>
+      <div>
+        <label class="field-label">ต้นทุน/หุ้น (Buy)</label>
+        <input type="number" id="clsBuyPrice" placeholder="0.00" class="field-input">
+      </div>
+      <div>
+        <label class="field-label">ราคาขาย/หุ้น (Sell)</label>
+        <input type="number" id="clsSellPrice" placeholder="0.00" class="field-input">
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2 items-center">
+      <button id="btnClsSubmit" onclick="addClosedPosition()" class="btn-primary">
+        <i data-lucide="save" class="w-4 h-4"></i> บันทึกประวัติ
+      </button>
+      <button onclick="resetClsForm()" class="btn-primary btn-ghost btn-sm">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i> ล้างฟอร์ม
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+    <div class="xl:col-span-2 glass rounded-2xl overflow-hidden flex flex-col" style="max-height:540px">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-white/[.05]">
+        <span class="text-sm font-semibold">รายการขาย (Trade Log)</span>
+      </div>
+      <div class="table-wrap flex-1">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>วันที่ซื้อ - ขาย</th>
+              <th>วันที่ถือ</th>
+              <th>Shares</th>
+              <th>Buy Price</th>
+              <th>Sell Price</th>
+              <th>Realized P/L</th>
+              <th>% Return</th>
+              <th class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody id="closedTbody" class="bg-white dark:bg-white/[.02]"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-4">
+      <div class="glass rounded-2xl p-5 flex flex-col" style="height:270px">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold flex items-center gap-2"><i data-lucide="bar-chart" class="w-4 h-4 text-indigo-400"></i> กำไร/ขาดทุนรายตัว</h2>
+        </div>
+        <div class="flex-1 relative">
+          <canvas id="clsBarChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div id="mobileBar">
+  <button onclick="switchPage('tracking')" id="mob-tracking" class="flex-1 flex flex-col items-center gap-0.5 py-1 text-indigo-500">
+    <i data-lucide="layout-list" class="w-5 h-5"></i>
+    <span class="text-xs font-medium">Tracking</span>
+  </button>
+  <button onclick="switchPage('closed')" id="mob-closed" class="flex-1 flex flex-col items-center gap-0.5 py-1 text-slate-400">
+    <i data-lucide="history" class="w-5 h-5"></i>
+    <span class="text-xs font-medium">ประวัติ</span>
+  </button>
+  <button onclick="switchPage('retirement')" id="mob-retirement" class="flex-1 flex flex-col items-center gap-0.5 py-1 text-slate-400">
+    <i data-lucide="target" class="w-5 h-5"></i>
+    <span class="text-xs font-medium">เกษียณ</span>
+  </button>
+  <button onclick="exportData()" class="flex-1 flex flex-col items-center gap-0.5 py-1 text-slate-400">
+    <i data-lucide="download" class="w-5 h-5"></i>
+    <span class="text-xs font-medium">Export</span>
+  </button>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeAssetManager()"></div>
+<div class="drawer" id="assetDrawer">
+  <div class="flex items-center justify-between mb-5">
+    <h2 class="font-semibold text-base">จัดการ Asset Types</h2>
+    <button onclick="closeAssetManager()" class="btn-primary btn-ghost btn-sm p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <p class="text-xs text-slate-400 mb-4">กำหนดประเภทสินทรัพย์ที่ต้องการติดตาม (2–6 ประเภท)</p>
+  <div id="assetManagerList" class="space-y-2 mb-4"></div>
+  <button onclick="addAssetType()" class="btn-primary btn-ghost btn-sm w-full">
+    <i data-lucide="plus" class="w-3.5 h-3.5"></i> เพิ่มประเภท
+  </button>
+  <div class="mt-6 pt-4 border-t border-slate-100 dark:border-white/[.06]">
+    <button onclick="saveAssetTypes()" class="btn-primary w-full">
+      <i data-lucide="save" class="w-4 h-4"></i> บันทึกการตั้งค่า
+    </button>
+  </div>
+</div>
+
+<div class="drawer-overlay" id="noteOverlay" onclick="closeNote()"></div>
+<div class="drawer" id="noteDrawer" style="width:300px">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-semibold text-base" id="noteDrawerTitle">Note</h2>
+    <button onclick="closeNote()" class="btn-primary btn-ghost btn-sm p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <p id="noteDrawerContent" class="note-text"></p>
+</div>
+
+<script>
+lucide.createIcons();
+
+// เพิ่ม closedPositions ใน state เผื่อผู้ใช้ยังไม่มี
+let state = JSON.parse(localStorage.getItem('wealthos_v2')) || {
+  tracking: [],
+  assetTypes: [
+    { key: 'stock', label: 'Stock', color: '#6366f1' },
+    { key: 'bond', label: 'Bond', color: '#10b981' },
+    { key: 'gold', label: 'Gold', color: '#f59e0b' },
+    { key: 'cash', label: 'Cash', color: '#3b82f6' }
+  ],
+  closedPositions: []
+};
+
+// เผื่อไฟล์เก่าไม่มีอาร์เรย์นี้
+if (!state.closedPositions) state.closedPositions = [];
+
+let editingId = null;
+let editingClsId = null;
+let isDark = document.documentElement.classList.contains('dark');
+
+function save() { localStorage.setItem('wealthos_v2', JSON.stringify(state)); }
+
+// ========== THEME ==========
+function toggleTheme() {
+  isDark = document.getElementById('themeToggle').checked;
+  document.documentElement.classList.toggle('dark', isDark);
+  lucide.createIcons();
+  if (window.trackChart) renderLineChart();
+  if (window.pieChart) renderPie();
+  if (window.retChart) calcRetirement();
+  if (window.clsBarChart) renderClosedCharts();
+}
+
+// ========== PAGE SWITCH ==========
+function switchPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  ['tracking','retirement','closed'].forEach(n => {
+    document.getElementById('nav-' + n)?.classList.remove('nav-active');
+    document.getElementById('mob-' + n)?.classList.remove('text-indigo-500');
+    document.getElementById('mob-' + n)?.classList.add('text-slate-400');
+  });
+  document.getElementById('nav-' + p)?.classList.add('nav-active');
+  const mb = document.getElementById('mob-' + p);
+  if(mb){ mb.classList.add('text-indigo-500'); mb.classList.remove('text-slate-400'); }
+  
+  if(p === 'tracking') renderAll();
+  if(p === 'closed') renderClosedPositions();
+}
+
+// ========== ASSET MANAGER ==========
+function openAssetManager() {
+  renderAssetManagerList();
+  document.getElementById('assetDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function closeAssetManager() {
+  document.getElementById('assetDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+}
+function renderAssetManagerList() {
+  const container = document.getElementById('assetManagerList');
+  container.innerHTML = state.assetTypes.map((a, i) => `
+    <div class="flex items-center gap-2">
+      <input type="color" value="${a.color}" onchange="state.assetTypes[${i}].color=this.value" 
+        style="width:32px;height:32px;border:none;border-radius:8px;padding:2px;cursor:pointer;background:none">
+      <input type="text" value="${a.label}" oninput="state.assetTypes[${i}].label=this.value;state.assetTypes[${i}].key=this.value.toLowerCase().replace(/\\s+/g,'_')"
+        class="field-input flex-1" placeholder="ชื่อ Asset">
+      ${state.assetTypes.length > 2 ? `<button onclick="removeAssetType(${i})" class="btn-primary btn-ghost btn-sm p-1.5 text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+    </div>`).join('');
+  lucide.createIcons();
+}
+function addAssetType() {
+  if(state.assetTypes.length >= 6) { alert('สูงสุด 6 ประเภท'); return; }
+  const colors = ['#6366f1','#10b981','#f59e0b','#3b82f6','#ec4899','#f97316'];
+  const c = colors[state.assetTypes.length % colors.length];
+  state.assetTypes.push({ key: 'asset' + Date.now(), label: 'New Asset', color: c });
+  renderAssetManagerList();
+}
+function removeAssetType(i) {
+  state.assetTypes.splice(i, 1);
+  renderAssetManagerList();
+}
+function saveAssetTypes() {
+  save();
+  closeAssetManager();
+  renderAssetInputs();
+  renderAll();
+  lucide.createIcons();
+}
+
+// ========== FORM ==========
+function renderAssetInputs() {
+  const row = document.getElementById('assetInputsRow');
+  row.innerHTML = state.assetTypes.map(a => `
+    <div>
+      <label class="field-label" style="color:${a.color}">${a.label} (%)</label>
+      <input type="number" id="trk_${a.key}" placeholder="0" oninput="updateAlloc()" class="field-input">
+    </div>`).join('');
+}
+function updateAlloc() {
+  let total = state.assetTypes.reduce((s,a) => s + (parseFloat(document.getElementById('trk_'+a.key)?.value)||0), 0);
+  let remain = 100 - total;
+  const el = document.getElementById('allocRemainText');
+  el.textContent = remain + '%';
+  el.className = remain === 0 ? 'text-emerald-500 font-bold ml-1' : remain < 0 ? 'text-rose-500 font-bold ml-1' : 'text-amber-500 font-bold ml-1';
+  document.getElementById('allocBarWrap').classList.remove('hidden');
+  document.getElementById('allocBarFill').style.width = Math.min(total, 100) + '%';
+  document.getElementById('allocBarFill').style.background = remain === 0 ? '#10b981' : remain < 0 ? '#ef4444' : '#6366f1';
+  document.getElementById('allocBarLabel').textContent = total.toFixed(0) + ' / 100%';
+}
+
+function addTracking() {
+  const date = document.getElementById('trkDate').value;
+  if(!date) { alert('กรุณาเลือกเดือน/ปี'); return; }
+  const dca = parseFloat(document.getElementById('trkDCA').value) || 0;
+  const totalAsset = parseFloat(document.getElementById('trkAsset').value) || 0;
+  const note = document.getElementById('trkNote').value.trim();
+
+  let totalAlloc = 0;
+  const allocs = {};
+  state.assetTypes.forEach(a => {
+    const v = parseFloat(document.getElementById('trk_'+a.key)?.value) || 0;
+    allocs[a.key] = v;
+    totalAlloc += v;
+  });
+  if(totalAlloc !== 100 && totalAlloc !== 0) {
+    if(!confirm(`สัดส่วน Asset รวมได้ ${totalAlloc}% (ไม่ครบ 100%)\nต้องการบันทึกต่อใช่ไหม?`)) return;
+  }
+
+  const existing = state.tracking.find(t => t.date === date);
+  let targetId = editingId || (existing ? existing.id : null);
+
+  const record = { id: targetId || Date.now(), date, dca, totalAsset, allocs, note };
+
+  if(targetId) {
+    const idx = state.tracking.findIndex(t => t.id === targetId);
+    if(idx >= 0) state.tracking[idx] = record; else state.tracking.push(record);
+  } else {
+    state.tracking.push(record);
+  }
+
+  resetForm();
+  recalculate();
+}
+
+function editTracking(id) {
+  const t = state.tracking.find(x => x.id === id);
+  if(!t) return;
+  editingId = t.id;
+  document.getElementById('trkDate').value = t.date;
+  document.getElementById('trkDCA').value = t.dca;
+  document.getElementById('trkAsset').value = t.totalAsset;
+  document.getElementById('trkNote').value = t.note || '';
+  state.assetTypes.forEach(a => {
+    const el = document.getElementById('trk_'+a.key);
+    if(el) el.value = t.allocs?.[a.key] ?? '';
+  });
+  updateAlloc();
+  document.getElementById('formTitle').innerHTML = `<i data-lucide="edit-3" class="w-4 h-4"></i> แก้ไขข้อมูล`;
+  document.getElementById('formTitle').className = 'text-sm font-semibold flex items-center gap-2 text-amber-500';
+  const btn = document.getElementById('btnSubmit');
+  btn.className = 'btn-primary btn-warning';
+  btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> อัปเดต`;
+  lucide.createIcons();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteTracking(id) {
+  if(!confirm('ลบข้อมูลนี้ใช่หรือไม่?')) return;
+  state.tracking = state.tracking.filter(t => t.id !== id);
+  recalculate();
+}
+
+function resetForm() {
+  editingId = null;
+  const now = new Date();
+  document.getElementById('trkDate').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('trkDCA').value = '';
+  document.getElementById('trkAsset').value = '';
+  document.getElementById('trkNote').value = '';
+  state.assetTypes.forEach(a => { const el = document.getElementById('trk_'+a.key); if(el) el.value=''; });
+  document.getElementById('formTitle').innerHTML = `<i data-lucide="plus-circle" class="w-4 h-4"></i> เพิ่มข้อมูลประจำเดือน`;
+  document.getElementById('formTitle').className = 'text-sm font-semibold flex items-center gap-2 text-indigo-500';
+  const btn = document.getElementById('btnSubmit');
+  btn.className = 'btn-primary';
+  btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> บันทึก`;
+  document.getElementById('allocRemainText').textContent = '100%';
+  document.getElementById('allocRemainText').className = 'text-amber-500 font-bold ml-1';
+  document.getElementById('allocBarWrap').classList.add('hidden');
+  lucide.createIcons();
+}
+
+// ========== CALC ==========
+function recalculate() {
+  state.tracking.sort((a,b) => a.date.localeCompare(b.date));
+  let principle = 0;
+  state.tracking.forEach((t, i) => {
+    principle += t.dca;
+    t.principle = principle;
+    t.netProfit = t.totalAsset - t.principle;
+    t.pctRate = t.principle > 0 ? (t.netProfit / t.principle) * 100 : 0;
+    t.mom = i > 0 ? t.totalAsset - state.tracking[i-1].totalAsset : null;
+  });
+  save();
+  renderAll();
+}
+
+function renderAll() {
+  renderSummary();
+  renderTable();
+  populatePieDropdown();
+  renderLineChart();
+  renderPie();
+  document.getElementById('rowCount').textContent = state.tracking.length + ' รายการ';
+}
+
+// ========== SUMMARY ==========
+function renderSummary() {
+  const el = (id) => document.getElementById(id);
+  if(!state.tracking.length) {
+    ['sumTotalAsset','sumPrinciple'].forEach(id => el(id).textContent = '฿0');
+    el('sumNetProfit').textContent = '฿0'; el('sumNetProfit').className = 'stat-value text-slate-400';
+    el('sumPct').textContent = '0.00%'; el('sumPct').className = 'stat-value text-slate-400';
+    el('sumAssetSub').textContent = '—'; el('sumDCASub').textContent = '—';
+    el('sumMoMSub').textContent = 'MoM: —'; el('sumMonthsSub').textContent = '— เดือน';
+    el('cardProfit').style.borderLeftColor = '#94a3b8'; el('cardPct').style.borderLeftColor = '#94a3b8';
+    return;
+  }
+  const last = state.tracking[state.tracking.length-1];
+  const isP = last.netProfit >= 0;
+  const pc = isP ? '#10b981' : '#ef4444';
+  const pfx = isP ? '+' : '';
+
+  el('sumTotalAsset').textContent = '฿' + last.totalAsset.toLocaleString();
+  el('sumPrinciple').textContent = '฿' + last.principle.toLocaleString();
+  el('sumNetProfit').textContent = pfx + '฿' + Math.abs(last.netProfit).toLocaleString();
+  el('sumNetProfit').className = 'stat-value mono ' + (isP ? 'text-emerald-500' : 'text-rose-500');
+  el('sumPct').textContent = pfx + last.pctRate.toFixed(2) + '%';
+  el('sumPct').className = 'stat-value mono ' + (isP ? 'text-emerald-500' : 'text-rose-500');
+  el('cardProfit').style.borderLeftColor = pc; el('cardPct').style.borderLeftColor = pc;
+
+  const momVal = last.mom;
+  el('sumMoMSub').textContent = momVal !== null ? 'MoM: ' + (momVal >= 0 ? '+' : '') + '฿' + Math.abs(momVal).toLocaleString() : 'MoM: —';
+  el('sumMonthsSub').textContent = state.tracking.length + ' เดือน';
+
+  const totalDCA = state.tracking.reduce((s,t) => s + t.dca, 0);
+  el('sumDCASub').textContent = 'รวม DCA: ฿' + totalDCA.toLocaleString();
+  el('sumAssetSub').textContent = 'เดือนล่าสุด: ' + fmtDate(last.date);
+}
+
+// ========== TABLE ==========
+function renderTable() {
+  const tbody = document.getElementById('trackingTbody');
+  const head = document.getElementById('tableHead');
+
+  // Rebuild header
+  let thHTML = `<th>Date</th><th>DCA</th><th>Principle</th>`;
+  state.assetTypes.forEach(a => { thHTML += `<th style="color:${a.color}">${a.label}</th>`; });
+  thHTML += `<th>Total Asset</th><th>MoM</th><th>Net Profit</th><th>% Return</th><th class="text-center">Actions</th>`;
+  head.innerHTML = thHTML;
+
+  if(!state.tracking.length) {
+    tbody.innerHTML = `<tr><td colspan="20" class="text-center py-10 text-slate-400">ยังไม่มีข้อมูล — เพิ่มข้อมูลแรกได้เลย</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = [...state.tracking].reverse().map(t => {
+    const isP = t.netProfit >= 0;
+    const pfx = isP ? '+' : '';
+    const profitBadge = `<span class="${isP?'badge-profit':'badge-loss'}">${pfx}฿${Math.abs(t.netProfit).toLocaleString()}</span>`;
+    const pctBadge = `<span class="${isP?'badge-profit':'badge-loss'}">${pfx}${t.pctRate.toFixed(2)}%</span>`;
+    const momBadge = t.mom !== null
+      ? `<span class="${t.mom>=0?'badge-mom-up':'badge-mom-dn'}">${t.mom>=0?'+':''}฿${Math.abs(t.mom).toLocaleString()}</span>`
+      : `<span class="text-slate-400 text-xs">—</span>`;
+
+    let allocCols = state.assetTypes.map(a => {
+      const v = t.allocs?.[a.key] ?? null;
+      return `<td class="text-slate-400 text-xs">${v !== null && v !== 0 ? `<span class="asset-tag" style="background:${a.color}22;color:${a.color}">${v}%</span>` : '—'}</td>`;
+    }).join('');
+
+    const noteBtn = t.note ? `<button onclick="showNote(${t.id})" class="text-slate-300 hover:text-indigo-400 transition-colors" title="ดู Note"><i data-lucide="sticky-note" class="w-4 h-4 inline-block"></i></button>` : '';
+
+    return `<tr>
+      <td class="font-mono text-xs">${fmtDate(t.date)}</td>
+      <td class="text-amber-500 font-semibold mono text-xs">฿${t.dca.toLocaleString()}</td>
+      <td class="text-slate-500 mono text-xs">฿${t.principle.toLocaleString()}</td>
+      ${allocCols}
+      <td class="text-indigo-500 dark:text-indigo-400 font-bold mono text-xs">฿${t.totalAsset.toLocaleString()}</td>
+      <td>${momBadge}</td>
+      <td>${profitBadge}</td>
+      <td>${pctBadge}</td>
+      <td class="text-center space-x-1">
+        ${noteBtn}
+        <button onclick="editTracking(${t.id})" class="text-slate-300 hover:text-amber-400 transition-colors" title="แก้ไข"><i data-lucide="edit" class="w-4 h-4 inline-block"></i></button>
+        <button onclick="deleteTracking(${t.id})" class="text-slate-300 hover:text-rose-400 transition-colors" title="ลบ"><i data-lucide="trash-2" class="w-4 h-4 inline-block"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  lucide.createIcons();
+}
+
+// ========== NOTE ==========
+function showNote(id) {
+  const t = state.tracking.find(x => x.id === id);
+  if(!t?.note) return;
+  document.getElementById('noteDrawerTitle').textContent = fmtDate(t.date) + ' — Note';
+  document.getElementById('noteDrawerContent').textContent = t.note;
+  document.getElementById('noteDrawer').classList.add('open');
+  document.getElementById('noteOverlay').classList.add('open');
+}
+function closeNote() {
+  document.getElementById('noteDrawer').classList.remove('open');
+  document.getElementById('noteOverlay').classList.remove('open');
+}
+
+// ========== CHARTS ==========
+window.trackChart = null;
+function renderLineChart() {
+  const ctx = document.getElementById('trackingChart').getContext('2d');
+  if(window.trackChart) window.trackChart.destroy();
+
+  const tick = isDark ? '#64748b' : '#94a3b8';
+  const grid = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(226,232,240,0.5)';
+
+  window.trackChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: state.tracking.map(t => fmtDate(t.date)),
+      datasets: [
+        {
+          label: 'Total Asset',
+          data: state.tracking.map(t => t.totalAsset),
+          borderColor: '#10b981', borderWidth: 2.5, fill: false,
+          tension: 0.4, pointRadius: 0, pointHoverRadius: 5,
+          pointBackgroundColor: '#10b981'
+        },
+        {
+          label: 'Principle',
+          data: state.tracking.map(t => t.principle),
+          borderColor: '#3b82f6', borderWidth: 2, borderDash: [5,5],
+          fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 5,
+          pointBackgroundColor: '#3b82f6'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          usePointStyle: true, boxPadding: 6,
+          backgroundColor: isDark ? 'rgba(14,20,32,0.95)' : 'rgba(255,255,255,0.95)',
+          titleColor: isDark ? '#e2e8f0' : '#1e293b',
+          bodyColor: isDark ? '#e2e8f0' : '#1e293b',
+          borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+          borderWidth: 1, padding: 10,
+          callbacks: { label: c => ` ${c.dataset.label}: ฿${c.parsed.y.toLocaleString()}` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: tick, maxTicksLimit: 6, font: { size: 10 } } },
+        y: {
+          grid: { color: grid, borderDash: [4,4] }, border: { display: false },
+          ticks: {
+            color: tick, padding: 8, font: { size: 10 },
+            callback: v => v >= 1000000 ? '฿' + (v/1000000).toFixed(1) + 'M' : v >= 1000 ? '฿' + (v/1000).toFixed(0) + 'k' : '฿' + v
+          }
+        }
+      }
+    }
+  });
+}
+
+window.pieChart = null;
+function populatePieDropdown() {
+  const sel = document.getElementById('statMonth');
+  sel.innerHTML = '';
+  if(!state.tracking.length) return;
+  [...state.tracking].sort((a,b) => b.date.localeCompare(a.date)).forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.date; o.textContent = fmtDate(t.date);
+    sel.appendChild(o);
+  });
+}
+function renderPie() {
+  const wrap = document.getElementById('assetPieWrap');
+  if(!state.tracking.length) {
+    wrap.innerHTML = '<span class="text-xs text-slate-400" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">ยังไม่มีข้อมูล</span>';
+    return;
+  }
+  if(!document.getElementById('assetPieChart')) {
+    wrap.innerHTML = '<canvas id="assetPieChart" role="img" aria-label="Asset allocation pie chart" style="position:absolute;inset:0;width:100%!important;height:100%!important">Asset allocation.</canvas>';
+  }
+  const date = document.getElementById('statMonth').value;
+  const t = state.tracking.find(x => x.date === date) || state.tracking[state.tracking.length-1];
+  const ctx = document.getElementById('assetPieChart').getContext('2d');
+  if(window.pieChart) window.pieChart.destroy();
+
+  const labels = state.assetTypes.map(a => a.label);
+  const data = state.assetTypes.map(a => t.allocs?.[a.key] || 0);
+  const colors = state.assetTypes.map(a => a.color);
+
+  Chart.defaults.color = isDark ? '#94a3b8' : '#64748b';
+  window.pieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors, borderWidth: isDark ? 3 : 2, borderColor: isDark ? '#0e1420' : '#ffffff', hoverOffset: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '55%',
+      layout: { padding: 4 },
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 10, padding: 8, font: { size: 10 }, color: isDark ? '#94a3b8' : '#64748b' } },
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed}%` } }
+      }
+    }
+  });
+}
+
+// ========== RETIREMENT ==========
+window.retChart = null;
+function calcRetirement() {
+  const curAge = parseFloat(document.getElementById('retCurrentAge').value) || 0;
+  const retAge = parseFloat(document.getElementById('retRetireAge').value) || 0;
+  const dca = parseFloat(document.getElementById('retDCA').value) || 0;
+  const annRet = parseFloat(document.getElementById('retReturn').value) || 0;
+  const curPort = parseFloat(document.getElementById('retCurrent').value) || 0;
+  const expense = parseFloat(document.getElementById('retExpense').value) || 0;
+  const inflation = parseFloat(document.getElementById('retInflation').value) || 3;
+
+  if(!curAge || !retAge || retAge <= curAge) return;
+
+  const years = retAge - curAge;
+  const monthlyRate = annRet / 100 / 12;
+  const months = years * 12;
+
+  let projected = curPort;
+  const chartLabels = [curAge + ' ปี'];
+  const chartData = [Math.round(curPort)];
+
+  for(let m = 1; m <= months; m++) {
+    projected = projected * (1 + monthlyRate) + dca;
+    if(m % 12 === 0) {
+      chartLabels.push((curAge + m/12) + ' ปี');
+      chartData.push(Math.round(projected));
+    }
+  }
+
+  // Target: 25x annual expenses (4% rule) inflation-adjusted
+  const realExpense = expense * Math.pow(1 + inflation/100, years);
+  const target = realExpense * 12 * 25;
+  const enough = projected >= target;
+
+  document.getElementById('retYearsLeft').textContent = years;
+  document.getElementById('retTarget').textContent = '฿' + Math.round(target).toLocaleString();
+  document.getElementById('retProjected').textContent = '฿' + Math.round(projected).toLocaleString();
+  document.getElementById('retStatus').textContent = enough ? '✓ พอเพียง' : '✗ ไม่พอ';
+  document.getElementById('retStatus').className = 'stat-value ' + (enough ? 'text-emerald-500' : 'text-rose-500');
+  document.getElementById('retStatusCard').style.borderLeftColor = enough ? '#10b981' : '#ef4444';
+  const gap = projected - target;
+  document.getElementById('retStatusSub').textContent = (gap >= 0 ? '+' : '') + '฿' + Math.round(Math.abs(gap)).toLocaleString() + (gap >= 0 ? ' เกิน' : ' ขาด');
+
+  const ctx = document.getElementById('retChart').getContext('2d');
+  if(window.retChart) window.retChart.destroy();
+  const tick = isDark ? '#64748b' : '#94a3b8';
+  const grid = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(226,232,240,0.5)';
+
+  window.retChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: 'พอร์ตที่คาดการณ์',
+          data: chartData,
+          borderColor: '#6366f1', borderWidth: 2.5, fill: true,
+          backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.05)',
+          tension: 0.4, pointRadius: 0, pointHoverRadius: 5
+        },
+        {
+          label: 'เป้าหมาย',
+          data: chartLabels.map(() => Math.round(target)),
+          borderColor: '#ef4444', borderWidth: 1.5, borderDash: [6,4],
+          fill: false, tension: 0, pointRadius: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { boxWidth: 10, font: { size: 11 }, color: tick } },
+        tooltip: {
+          callbacks: { label: c => ` ${c.dataset.label}: ฿${c.parsed.y.toLocaleString()}` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: tick, maxTicksLimit: 8, font: { size: 10 } } },
+        y: {
+          grid: { color: grid, borderDash: [4,4] }, border: { display: false },
+          ticks: {
+            color: tick, font: { size: 10 },
+            callback: v => v >= 1000000 ? '฿' + (v/1000000).toFixed(1) + 'M' : '฿' + (v/1000).toFixed(0) + 'k'
+          }
+        }
+      }
+    }
+  });
+}
+
+
+// ========== CLOSED POSITIONS (หน้าใหม่) ==========
+
+function addClosedPosition() {
+  const ticker = document.getElementById('clsTicker').value.toUpperCase().trim();
+  const buyDate = document.getElementById('clsBuyDate').value;
+  const sellDate = document.getElementById('clsSellDate').value;
+  const shares = parseFloat(document.getElementById('clsShares').value) || 0;
+  const buyPrice = parseFloat(document.getElementById('clsBuyPrice').value) || 0;
+  const sellPrice = parseFloat(document.getElementById('clsSellPrice').value) || 0;
+
+  if(!ticker || !buyDate || !sellDate || !shares || !buyPrice || !sellPrice) {
+    alert('กรุณากรอกข้อมูลให้ครบทุกช่อง'); return;
+  }
+
+  const record = {
+    id: editingClsId || Date.now(),
+    ticker, buyDate, sellDate, shares, buyPrice, sellPrice
+  };
+
+  if(editingClsId) {
+    const idx = state.closedPositions.findIndex(x => x.id === editingClsId);
+    if(idx >= 0) state.closedPositions[idx] = record; else state.closedPositions.push(record);
+  } else {
+    state.closedPositions.push(record);
+  }
+
+  save();
+  resetClsForm();
+  renderClosedPositions();
+}
+
+function editClosedPosition(id) {
+  const p = state.closedPositions.find(x => x.id === id);
+  if(!p) return;
+  editingClsId = p.id;
+  document.getElementById('clsTicker').value = p.ticker;
+  document.getElementById('clsBuyDate').value = p.buyDate;
+  document.getElementById('clsSellDate').value = p.sellDate;
+  document.getElementById('clsShares').value = p.shares;
+  document.getElementById('clsBuyPrice').value = p.buyPrice;
+  document.getElementById('clsSellPrice').value = p.sellPrice;
+  
+  document.getElementById('clsFormTitle').innerHTML = `<i data-lucide="edit-3" class="w-4 h-4"></i> แก้ไขประวัติการขาย`;
+  document.getElementById('clsFormTitle').className = 'text-sm font-semibold flex items-center gap-2 text-amber-500';
+  const btn = document.getElementById('btnClsSubmit');
+  btn.className = 'btn-primary btn-warning';
+  btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> อัปเดตข้อมูล`;
+  lucide.createIcons();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteClosedPosition(id) {
+  if(!confirm('ลบประวัติการเทรดนี้ใช่หรือไม่?')) return;
+  state.closedPositions = state.closedPositions.filter(x => x.id !== id);
+  save();
+  renderClosedPositions();
+}
+
+function resetClsForm() {
+  editingClsId = null;
+  ['clsTicker','clsBuyDate','clsSellDate','clsShares','clsBuyPrice','clsSellPrice'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('clsFormTitle').innerHTML = `<i data-lucide="plus-circle" class="w-4 h-4"></i> บันทึกประวัติการขาย`;
+  document.getElementById('clsFormTitle').className = 'text-sm font-semibold flex items-center gap-2 text-indigo-500';
+  const btn = document.getElementById('btnClsSubmit');
+  btn.className = 'btn-primary';
+  btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> บันทึกประวัติ`;
+  lucide.createIcons();
+}
+
+function renderClosedPositions() {
+  let totalRealized = 0;
+  let totalCost = 0;
+  let wins = 0, losses = 0;
+  let bestTrade = null, worstTrade = null;
+
+  // Sorting from newest to oldest sellDate
+  state.closedPositions.sort((a,b) => b.sellDate.localeCompare(a.sellDate));
+
+  const tbody = document.getElementById('closedTbody');
+  if(!state.closedPositions.length) {
+    tbody.innerHTML = `<tr><td colspan="10" class="text-center py-10 text-slate-400">ยังไม่มีประวัติการขายสินทรัพย์</td></tr>`;
+    document.getElementById('clsTotalProfit').textContent = '฿0';
+    document.getElementById('clsTotalProfit').className = 'stat-value text-slate-400';
+    document.getElementById('clsTotalReturn').textContent = 'Return: 0.00%';
+    document.getElementById('clsWinRate').textContent = '0%';
+    document.getElementById('clsTradeCount').textContent = '0 Trades';
+    document.getElementById('clsBestProfit').textContent = '—';
+    document.getElementById('clsBestTicker').textContent = '—';
+    document.getElementById('clsWorstProfit').textContent = '—';
+    document.getElementById('clsWorstTicker').textContent = '—';
+    if(window.clsBarChart) window.clsBarChart.destroy();
+    return;
+  }
+
+  tbody.innerHTML = state.closedPositions.map(p => {
+    const cost = p.buyPrice * p.shares;
+    const revenue = p.sellPrice * p.shares;
+    const pl = revenue - cost;
+    const pct = cost > 0 ? (pl / cost) * 100 : 0;
+    
+    // คำนวณจำนวนวันที่ถือ
+    const holdDays = (p.buyDate && p.sellDate)
+      ? Math.round((new Date(p.sellDate) - new Date(p.buyDate)) / (1000 * 60 * 60 * 24))
+      : null;
+    const holdLabel = holdDays !== null
+      ? `<span class="mono text-xs text-slate-400">${holdDays}<span class="text-slate-500"> วัน</span></span>`
+      : '—';
+    
+    totalRealized += pl;
+    totalCost += cost;
+    if(pl > 0) wins++; else if(pl < 0) losses++;
+
+    if(!bestTrade || pl > bestTrade.pl) bestTrade = { ticker: p.ticker, pl, pct };
+    if(!worstTrade || pl < worstTrade.pl) worstTrade = { ticker: p.ticker, pl, pct };
+
+    const isP = pl >= 0;
+    const pfx = isP ? '+' : '';
+    const profitBadge = `<span class="${isP?'badge-profit':'badge-loss'}">${pfx}฿${Math.abs(pl).toLocaleString(undefined, {maximumFractionDigits:2})}</span>`;
+    const pctBadge = `<span class="${isP?'badge-profit':'badge-loss'}">${pfx}${pct.toFixed(2)}%</span>`;
+
+    return `<tr>
+      <td class="font-bold text-indigo-500 text-xs">${p.ticker}</td>
+      <td class="text-slate-500 text-xs">${p.buyDate} <span class="text-slate-300 mx-1">➔</span> ${p.sellDate}</td>
+      <td class="text-center">${holdLabel}</td>
+      <td class="text-slate-500 mono text-xs">${p.shares}</td>
+      <td class="text-slate-500 mono text-xs">฿${p.buyPrice.toLocaleString()}</td>
+      <td class="text-slate-800 dark:text-white font-semibold mono text-xs">฿${p.sellPrice.toLocaleString()}</td>
+      <td>${profitBadge}</td>
+      <td>${pctBadge}</td>
+      <td class="text-center space-x-1">
+        <button onclick="editClosedPosition(${p.id})" class="text-slate-300 hover:text-amber-400 transition-colors" title="แก้ไข"><i data-lucide="edit" class="w-4 h-4 inline-block"></i></button>
+        <button onclick="deleteClosedPosition(${p.id})" class="text-slate-300 hover:text-rose-400 transition-colors" title="ลบ"><i data-lucide="trash-2" class="w-4 h-4 inline-block"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  lucide.createIcons();
+
+  // Summary Update
+  const isTP = totalRealized >= 0;
+  const tpfx = isTP ? '+' : '';
+  const totalRetPct = totalCost > 0 ? (totalRealized / totalCost) * 100 : 0;
+  
+  document.getElementById('clsTotalProfit').textContent = `${tpfx}฿${Math.abs(totalRealized).toLocaleString(undefined, {maximumFractionDigits:2})}`;
+  document.getElementById('clsTotalProfit').className = 'stat-value mono ' + (isTP ? 'text-emerald-500' : 'text-rose-500');
+  document.getElementById('clsTotalCard').style.borderLeftColor = isTP ? '#10b981' : '#ef4444';
+  document.getElementById('clsTotalReturn').textContent = `Total Return: ${tpfx}${totalRetPct.toFixed(2)}%`;
+
+  const totalTrades = wins + losses;
+  const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+  document.getElementById('clsWinRate').textContent = `${winRate.toFixed(1)}%`;
+  document.getElementById('clsTradeCount').textContent = `${totalTrades} Trades (Win ${wins} / Loss ${losses})`;
+
+  if(bestTrade && bestTrade.pl > 0) {
+    document.getElementById('clsBestProfit').textContent = `+฿${bestTrade.pl.toLocaleString(undefined, {maximumFractionDigits:2})}`;
+    document.getElementById('clsBestTicker').textContent = `${bestTrade.ticker} (+${bestTrade.pct.toFixed(2)}%)`;
+  } else {
+    document.getElementById('clsBestProfit').textContent = '—';
+    document.getElementById('clsBestTicker').textContent = 'ไม่มีกำไร';
+  }
+
+  if(worstTrade && worstTrade.pl < 0) {
+    document.getElementById('clsWorstProfit').textContent = `-฿${Math.abs(worstTrade.pl).toLocaleString(undefined, {maximumFractionDigits:2})}`;
+    document.getElementById('clsWorstTicker').textContent = `${worstTrade.ticker} (${worstTrade.pct.toFixed(2)}%)`;
+  } else {
+    document.getElementById('clsWorstProfit').textContent = '—';
+    document.getElementById('clsWorstTicker').textContent = 'ไม่มีขาดทุน';
+  }
+
+  renderClosedCharts();
+}
+
+window.clsBarChart = null;
+
+function renderClosedCharts() {
+  const tick = isDark ? '#64748b' : '#94a3b8';
+  const grid = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(226,232,240,0.5)';
+
+  // Data prep for Bar Chart (P/L by Ticker)
+  const tickerPL = {};
+  state.closedPositions.forEach(p => {
+    const pl = (p.sellPrice - p.buyPrice) * p.shares;
+    if(!tickerPL[p.ticker]) tickerPL[p.ticker] = 0;
+    tickerPL[p.ticker] += pl;
+  });
+
+  const barLabels = Object.keys(tickerPL);
+  const barData = Object.values(tickerPL);
+  const barColors = barData.map(v => v >= 0 ? '#10b981' : '#ef4444');
+
+  // Draw Bar Chart
+  const ctxBar = document.getElementById('clsBarChart').getContext('2d');
+  if(window.clsBarChart) window.clsBarChart.destroy();
+  window.clsBarChart = new Chart(ctxBar, {
+    type: 'bar',
+    data: {
+      labels: barLabels,
+      datasets: [{
+        label: 'Realized P/L',
+        data: barData,
+        backgroundColor: barColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ฿${c.parsed.y.toLocaleString()}` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: tick, font: { size: 11, weight: 'bold' } } },
+        y: { grid: { color: grid, borderDash: [4,4] }, border: { display: false }, ticks: { color: tick, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+
+// ========== EXPORT / IMPORT ==========
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = 'wealthos_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+}
+function importData(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(data.tracking) {
+        if(confirm('นำเข้าข้อมูลจะแทนที่ข้อมูลปัจจุบัน ต้องการดำเนินการต่อ?')) {
+          state = data;
+          if(!state.closedPositions) state.closedPositions = [];
+          save();
+          renderAssetInputs();
+          renderAll();
+          alert('นำเข้าข้อมูลสำเร็จ ' + data.tracking.length + ' รายการ');
+        }
+      } else { alert('ไฟล์ไม่ถูกต้อง'); }
+    } catch { alert('ไม่สามารถอ่านไฟล์ได้'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ========== UTILS ==========
+function fmtDate(s) {
+  if(!s) return '';
+  const [y, m] = s.split('-');
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  return `${months[parseInt(m)-1]} '${y.slice(2)}`;
+}
+
+// ========== INIT ==========
+window.onload = () => {
+  renderAssetInputs();
+  recalculate();
+};
+</script>
+</body>
+</html>
